@@ -1,0 +1,28 @@
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vs/
+
+# Build
+bin/
+obj/
+
+# User files
+*.user
+*.suo
+
+# Logs
+*.log
+logs/
+
+# SQLite database
+ConsoleApp1/app.db
+ConsoleApp1/*.db
+ConsoleApp1/*.db-shm
+ConsoleApp1/*.db-wal
+
+# Rider
+.run/
+
