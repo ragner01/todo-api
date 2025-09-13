@@ -32,6 +32,10 @@ dotnet run
 ```
 Swagger UI: http://localhost:5000/swagger (or the port shown in console)
 
+Note on Formatting
+- Pull requests targeting `main` are automatically formatted by a workflow (dotnet-format) and changes are pushed back to the PR branch.
+- You can also run `dotnet tool install -g dotnet-format` and `dotnet format` locally before committing.
+
 ## Configuration
 `ConsoleApp1/appsettings.json` keys:
 - `ConnectionStrings:Default`: SQLite connection string (default: `Data Source=app.db`).
