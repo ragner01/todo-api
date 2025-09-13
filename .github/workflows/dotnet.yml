@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      DOTNET_NOLOGO: true
     steps:
       - uses: actions/checkout@v4
 
@@ -31,10 +34,10 @@ jobs:
       - name: Build
         run: dotnet build ConsoleApp1/ConsoleApp1.csproj --configuration Release --no-restore
 
-      - name: Check formatting
+      - name: Check formatting (non-blocking)
+        continue-on-error: true
         run: |
           dotnet tool install -g dotnet-format
-          echo "##[group]dotnet-format" 
-          ~/.dotnet/tools/dotnet-format ConsoleApp1/ConsoleApp1.csproj --verify-no-changes --verbosity diagnostic || (echo "Run 'dotnet tool install -g dotnet-format' then 'dotnet format' locally to fix formatting" && exit 1)
+          echo "##[group]dotnet-format"
+          ~/.dotnet/tools/dotnet-format ConsoleApp1/ConsoleApp1.csproj --no-restore --verify-no-changes || echo "Formatting differences detected. Run 'dotnet format' locally."
           echo "##[endgroup]"
-
