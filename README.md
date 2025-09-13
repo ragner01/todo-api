@@ -1,5 +1,7 @@
 # Todo Minimal API (ConsoleApp1)
 
+[![.NET CI](https://github.com/ragner01/todo-api/actions/workflows/dotnet.yml/badge.svg)](https://github.com/ragner01/todo-api/actions/workflows/dotnet.yml)
+
 A minimal ASP.NET Core 8 Web API for managing todos using EF Core (SQLite). It includes paging/filtering/sorting, validation, ETags for concurrency, JSON Patch, JWT-protected write operations, rate limiting, labels/priority, soft delete, background reminders, Swagger, Serilog logging, health checks, and OpenTelemetry instrumentation.
 
 ## Features
@@ -69,6 +71,14 @@ dotnet ef database update
 ```bash
 curl -i http://localhost:5000/api/todos/{id}
 ```
+
+## Docker
+Build and run locally:
+```bash
+docker build -t todo-api .
+docker run --rm -p 8080:8080 todo-api
+```
+Then open http://localhost:8080/swagger
 2) Update with concurrency check:
 ```bash
 curl -i -X PUT \
@@ -105,4 +115,3 @@ curl -i -X PATCH \
 
 ## License
 No license specified. Add one if needed.
-

@@ -17,13 +17,24 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: NuGet cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Restore
         run: dotnet restore ConsoleApp1/ConsoleApp1.csproj
 
       - name: Build
         run: dotnet build ConsoleApp1/ConsoleApp1.csproj --configuration Release --no-restore
 
-      - name: Test
-        if: false # no tests yet
-        run: dotnet test --no-build --verbosity normal
+      - name: Check formatting
+        run: |
+          dotnet tool install -g dotnet-format
+          echo "##[group]dotnet-format" 
+          ~/.dotnet/tools/dotnet-format ConsoleApp1/ConsoleApp1.csproj --verify-no-changes --verbosity diagnostic || (echo "Run 'dotnet tool install -g dotnet-format' then 'dotnet format' locally to fix formatting" && exit 1)
+          echo "##[endgroup]"
 

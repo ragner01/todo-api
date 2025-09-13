@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/.git/
+**/.gitignore
+**/.gitattributes
+**/.github/
+**/*.user
+**/*.suo
+**/*.log
+ConsoleApp1/app.db
+ConsoleApp1/*.db*
+
