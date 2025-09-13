@@ -79,6 +79,21 @@ docker build -t todo-api .
 docker run --rm -p 8080:8080 todo-api
 ```
 Then open http://localhost:8080/swagger
+
+### GitHub Container Registry (GHCR)
+Images are published automatically on pushes to `main` and tags (`v*.*.*`).
+
+Pull the image:
+```bash
+docker pull ghcr.io/ragner01/todo-api:latest
+# or a specific tag/sha
+docker pull ghcr.io/ragner01/todo-api:<tag>
+```
+
+Run:
+```bash
+docker run --rm -p 8080:8080 ghcr.io/ragner01/todo-api:latest
+```
 2) Update with concurrency check:
 ```bash
 curl -i -X PUT \
