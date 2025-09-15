@@ -9,26 +9,26 @@ public class TodoDueReminderService(ILogger<TodoDueReminderService> logger, ITod
     : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+{
+    var timer = new PeriodicTimer(TimeSpan.FromMinutes(options.CurrentValue.IntervalMinutes <= 0 ? 1 : options.CurrentValue.IntervalMinutes));
+    try
     {
-        var timer = new PeriodicTimer(TimeSpan.FromMinutes(options.CurrentValue.IntervalMinutes <= 0 ? 1 : options.CurrentValue.IntervalMinutes));
-        try
+        while (await timer.WaitForNextTickAsync(stoppingToken))
         {
-            while (await timer.WaitForNextTickAsync(stoppingToken))
+            var overdue = await service.GetOverdueCountAsync(stoppingToken);
+            if (overdue > 0)
             {
-                var overdue = await service.GetOverdueCountAsync(stoppingToken);
-                if (overdue > 0)
-                {
-                    logger.LogWarning("There are {Overdue} overdue todos.", overdue);
-                }
-                else
-                {
-                    logger.LogInformation("No overdue todos.");
-                }
+                logger.LogWarning("There are {Overdue} overdue todos.", overdue);
+            }
+            else
+            {
+                logger.LogInformation("No overdue todos.");
             }
         }
-        catch (OperationCanceledException)
-        {
-            // normal on shutdown
-        }
     }
+    catch (OperationCanceledException)
+    {
+        // normal on shutdown
+    }
+}
 }
