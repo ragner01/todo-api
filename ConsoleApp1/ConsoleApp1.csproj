@@ -12,7 +12,7 @@
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.7" />
         <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.7" />
-        <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="8.0.7" />
+        <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="9.0.9" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.20" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
