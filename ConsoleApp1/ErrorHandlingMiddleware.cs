@@ -7,16 +7,16 @@ namespace WebApi.Middleware
     public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
     {
         public async Task Invoke(HttpContext context)
+    {
+        try
         {
-            try
-            {
-                await next(context);
-            }
-            catch (ValidationException vex)
-            {
-                logger.LogWarning(vex, "Validation failed");
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                context.Response.ContentType = "application/problem+json";
+            await next(context);
+        }
+        catch (ValidationException vex)
+        {
+            logger.LogWarning(vex, "Validation failed");
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            context.Response.ContentType = "application/problem+json";
 
             var problem = new ValidationProblemDetails
             {
@@ -29,25 +29,25 @@ namespace WebApi.Middleware
                 problem.Errors[kv.Key] = kv.Value;
             }
 
-                await context.Response.WriteAsync(JsonSerializer.Serialize(problem));
-            }
-            catch (Exception ex)
+            await context.Response.WriteAsync(JsonSerializer.Serialize(problem));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unhandled exception");
+            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            context.Response.ContentType = "application/problem+json";
+
+            var problem = new ProblemDetails
             {
-                logger.LogError(ex, "Unhandled exception");
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                context.Response.ContentType = "application/problem+json";
+                Title = "Internal Server Error",
+                Status = StatusCodes.Status500InternalServerError,
+                Detail = "An unexpected error occurred. Please try again later."
+            };
 
-                var problem = new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Status = StatusCodes.Status500InternalServerError,
-                    Detail = "An unexpected error occurred. Please try again later."
-                };
-
-                await context.Response.WriteAsync(JsonSerializer.Serialize(problem));
-            }
+            await context.Response.WriteAsync(JsonSerializer.Serialize(problem));
         }
     }
+}
 }
 
 namespace WebApi
