@@ -21,88 +21,88 @@ public static class TodoEndpoints
             .WithTags("Todos");
 
         // List with paging/filtering/sorting: /api/todos?page=1&pageSize=10&search=foo&sortBy=dueAtUtc&sortDir=desc&isCompleted=false
-        group.MapGet("", async (HttpContext http, AppDbContext db, int page = 1, int pageSize = 20, string? search = null,
-                string? sortBy = "createdAtUtc", string? sortDir = "desc", bool? isCompleted = null, string? label = null, string? priority = null, CancellationToken ct = default) =>
+        group.MapGet("", async(HttpContext http, AppDbContext db, int page = 1, int pageSize = 20, string ? search = null,
+                string ? sortBy = "createdAtUtc", string ? sortDir = "desc", bool ? isCompleted = null, string ? label = null, string ? priority = null, CancellationToken ct = default) =>
             {
-                page = Math.Max(1, page);
-                pageSize = Math.Clamp(pageSize, 1, 200);
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 200);
 
-                var query = db.Todos.AsNoTracking().AsQueryable();
+            var query = db.Todos.AsNoTracking().AsQueryable();
 
-                if (!string.IsNullOrWhiteSpace(search))
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var like = $"%{search.Trim()}%";
+                query = query.Where(t =>
+                    EF.Functions.Like(t.Title, like) ||
+                    (t.Description != null && EF.Functions.Like(t.Description, like)));
+            }
+
+            if (isCompleted is not null)
+            {
+                query = query.Where(t => t.IsCompleted == isCompleted);
+            }
+
+            if (!string.IsNullOrWhiteSpace(label))
+            {
+                var l = label.Trim();
+                query = query.Where(t => t.LabelsCsv != null && EF.Functions.Like(t.LabelsCsv, $"%{l}%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(priority) && Enum.TryParse<TodoPriority>(priority, true, out var pr))
+            {
+                query = query.Where(t => t.Priority == pr);
+            }
+
+            // Sorting
+            query = (sortBy?.ToLowerInvariant(), sortDir?.ToLowerInvariant()) switch
+            {
+                ("title", "asc") => query.OrderBy(t => t.Title),
+                ("title", "desc") => query.OrderByDescending(t => t.Title),
+
+                ("dueatutc", "asc") => query.OrderBy(t => t.DueAtUtc),
+                ("dueatutc", "desc") => query.OrderByDescending(t => t.DueAtUtc),
+
+                ("priority", "asc") => query.OrderBy(t => t.Priority),
+                ("priority", "desc") => query.OrderByDescending(t => t.Priority),
+
+                ("createdatutc", "asc") => query.OrderBy(t => t.CreatedAtUtc),
+                ("createdatutc", "desc") => query.OrderByDescending(t => t.CreatedAtUtc),
+
+                ("updatedatutc", "asc") => query.OrderBy(t => t.UpdatedAtUtc),
+                ("updatedatutc", "desc") => query.OrderByDescending(t => t.UpdatedAtUtc),
+
+                _ => query.OrderByDescending(t => t.CreatedAtUtc)
+            };
+
+            var total = await query.CountAsync(ct);
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(t => new TodoDto(t.Id, t.Title, t.Description, t.IsCompleted, t.DueAtUtc, t.CreatedAtUtc, t.UpdatedAtUtc, ParseLabels(t.LabelsCsv), t.Priority))
+                .ToListAsync(ct);
+
+            var fullUrl = http.Request.GetDisplayUrl();
+            var uri = new Uri(fullUrl);
+            string BuildPageLink(int p)
+            {
+                var qb = QueryString.Create(new Dictionary<string, string?>
                 {
-                    var like = $"%{search.Trim()}%";
-                    query = query.Where(t =>
-                        EF.Functions.Like(t.Title, like) ||
-                        (t.Description != null && EF.Functions.Like(t.Description, like)));
-                }
+                    ["page"] = p.ToString(),
+                    ["pageSize"] = pageSize.ToString(),
+                    ["search"] = search,
+                    ["sortBy"] = sortBy,
+                    ["sortDir"] = sortDir,
+                    ["isCompleted"] = isCompleted?.ToString()?.ToLowerInvariant()
+                });
+                var builder = new UriBuilder(uri) { Query = qb.Value };
+                return builder.Uri.ToString();
+            }
 
-                if (isCompleted is not null)
-                {
-                    query = query.Where(t => t.IsCompleted == isCompleted);
-                }
+            string? next = (page * pageSize < total) ? BuildPageLink(page + 1) : null;
+            string? prev = (page > 1) ? BuildPageLink(page - 1) : null;
 
-                if (!string.IsNullOrWhiteSpace(label))
-                {
-                    var l = label.Trim();
-                    query = query.Where(t => t.LabelsCsv != null && EF.Functions.Like(t.LabelsCsv, $"%{l}%"));
-                }
-
-                if (!string.IsNullOrWhiteSpace(priority) && Enum.TryParse<TodoPriority>(priority, true, out var pr))
-                {
-                    query = query.Where(t => t.Priority == pr);
-                }
-
-                // Sorting
-                query = (sortBy?.ToLowerInvariant(), sortDir?.ToLowerInvariant()) switch
-                {
-                    ("title", "asc") => query.OrderBy(t => t.Title),
-                    ("title", "desc") => query.OrderByDescending(t => t.Title),
-
-                    ("dueatutc", "asc") => query.OrderBy(t => t.DueAtUtc),
-                    ("dueatutc", "desc") => query.OrderByDescending(t => t.DueAtUtc),
-
-                    ("priority", "asc") => query.OrderBy(t => t.Priority),
-                    ("priority", "desc") => query.OrderByDescending(t => t.Priority),
-
-                    ("createdatutc", "asc") => query.OrderBy(t => t.CreatedAtUtc),
-                    ("createdatutc", "desc") => query.OrderByDescending(t => t.CreatedAtUtc),
-
-                    ("updatedatutc", "asc") => query.OrderBy(t => t.UpdatedAtUtc),
-                    ("updatedatutc", "desc") => query.OrderByDescending(t => t.UpdatedAtUtc),
-
-                    _ => query.OrderByDescending(t => t.CreatedAtUtc)
-                };
-
-                var total = await query.CountAsync(ct);
-                var items = await query
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(t => new TodoDto(t.Id, t.Title, t.Description, t.IsCompleted, t.DueAtUtc, t.CreatedAtUtc, t.UpdatedAtUtc, ParseLabels(t.LabelsCsv), t.Priority))
-                    .ToListAsync(ct);
-
-                var fullUrl = http.Request.GetDisplayUrl();
-                var uri = new Uri(fullUrl);
-                string BuildPageLink(int p)
-                {
-                    var qb = QueryString.Create(new Dictionary<string, string?>
-                    {
-                        ["page"] = p.ToString(),
-                        ["pageSize"] = pageSize.ToString(),
-                        ["search"] = search,
-                        ["sortBy"] = sortBy,
-                        ["sortDir"] = sortDir,
-                        ["isCompleted"] = isCompleted?.ToString()?.ToLowerInvariant()
-                    });
-                    var builder = new UriBuilder(uri) { Query = qb.Value };
-                    return builder.Uri.ToString();
-                }
-
-                string? next = (page * pageSize < total) ? BuildPageLink(page + 1) : null;
-                string? prev = (page > 1) ? BuildPageLink(page - 1) : null;
-
-                return Results.Ok(new PagedResult<TodoDto>(items, total, page, pageSize, next, prev));
-            })
+            return Results.Ok(new PagedResult<TodoDto>(items, total, page, pageSize, next, prev));
+        })
             .WithName("ListTodos")
             .Produces<PagedResult<TodoDto>>(StatusCodes.Status200OK)
             .WithSummary("List todos with paging, filtering, sorting")
